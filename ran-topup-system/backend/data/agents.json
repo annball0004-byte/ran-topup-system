@@ -52,5 +52,21 @@
         "by": "admin"
       }
     ]
+  },
+  {
+    "id": "AG1781330203473",
+    "username": "admin01",
+    "password": "$2a$10$xuBZq4uax.SiGe9QH7RV4e9N1AszDnrqURKBKpDmU7juZmn0x4gxO",
+    "name": "yyu",
+    "email": "annball0004@gmail.com",
+    "phone": "0656525140",
+    "commissionRate": 10,
+    "creditLimit": 100,
+    "balance": 0,
+    "status": "active",
+    "level": "bronze",
+    "totalSalesEver": 0,
+    "createdAt": "2026-06-13T05:56:43.473Z",
+    "createdBy": "admin"
   }
 ]

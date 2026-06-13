@@ -38,7 +38,7 @@ export default function AgentTopUp() {
         fetch(`${API_URL}/agents/me/dashboard`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/agents/me/topup-requests`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
-      if (dashRes.ok) { const d = await dashRes.json(); setBalance(d.agent.balance); }
+      if (dashRes.ok) { const d = await dashRes.json(); setBalance(d.dashboard?.balance ?? d.agent?.balance ?? 0); }
       if (reqRes.ok) { const r = await reqRes.json(); setRequests(r.requests || r); }
     } catch { setMessage({ type: 'error', text: 'โหลดข้อมูลล้มเหลว' }); }
     finally { setLoading(false); }

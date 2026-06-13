@@ -32,7 +32,7 @@ export default function AgentSell() {
   const fetchBalance = async (token: string) => {
     try {
       const res = await fetch(`${API_URL}/agents/me/dashboard`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) { const d = await res.json(); setBalance(d.agent.balance); }
+      if (res.ok) { const d = await res.json(); setBalance(d.dashboard?.balance ?? d.agent?.balance ?? 0); }
     } catch { /* ignore */ }
     finally { setLoading(false); }
   };
