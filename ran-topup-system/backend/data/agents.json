@@ -1,0 +1,25 @@
+[
+  {
+    "id": "AG1781326582393",
+    "username": "agent1",
+    "password": "$2a$10$wdPbmMF5ajpDtvUgVDIB7uhnDmefwDE7EIkWUEH/L3yCviiS0J1R2",
+    "name": "Test Agent",
+    "email": "agent@test.com",
+    "phone": "0812345678",
+    "commissionRate": 15,
+    "creditLimit": 100000,
+    "balance": 5000,
+    "status": "active",
+    "createdAt": "2026-06-13T04:56:22.393Z",
+    "createdBy": "admin",
+    "updatedAt": "2026-06-13T04:57:26.547Z",
+    "creditHistory": [
+      {
+        "amount": 5000,
+        "note": "Admin ???????????",
+        "date": "2026-06-13T04:57:26.547Z",
+        "by": "admin"
+      }
+    ]
+  }
+]

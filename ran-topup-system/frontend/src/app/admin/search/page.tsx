@@ -61,6 +61,7 @@ export default function SearchPage() {
             <div className="space-y-2">
               {[
                 { icon: '📊', label: 'Dashboard', href: '/admin' },
+                { icon: '🔔', label: 'แจ้งเตือน', href: '/admin/alerts' },
                 { icon: '🖥️', label: 'Server Status', href: '/admin/server' },
                 { icon: '👥', label: 'จัดการผู้ใช้', href: '/admin/users' },
                 { icon: '🎮', label: 'ตัวละคร', href: '/admin/characters' },
@@ -68,6 +69,7 @@ export default function SearchPage() {
                 { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
+                { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
                 { icon: '📋', label: 'GM Logs', href: '/admin/gmlogs' },
                 { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search', active: true },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },

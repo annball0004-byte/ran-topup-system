@@ -157,6 +157,7 @@ export default function SettingsPage() {
             <div className="space-y-2">
               {[
                 { icon: '📊', label: 'Dashboard', href: '/admin' },
+                { icon: '🔔', label: 'แจ้งเตือน', href: '/admin/alerts' },
                 { icon: '📦', label: 'คำสั่งซื้อ', href: '/admin' },
                 { icon: '👥', label: 'ผู้ใช้', href: '/admin' },
                 { icon: '🎮', label: 'แพ็กเกจ', href: '/admin' },
@@ -164,6 +165,7 @@ export default function SettingsPage() {
                 { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
+                { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
                 { icon: '⚙️', label: 'ตั้งค่าระบบ', href: '/admin/settings', active: true },
                 { icon: '📝', label: 'Logs', href: '/admin' },
               ].map((item, i) => (

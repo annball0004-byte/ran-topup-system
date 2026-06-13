@@ -20,6 +20,7 @@ import shopAdminRoutes from './routes/shop-admin.routes';
 import serverRoutes from './routes/server.routes';
 import gmLogsRoutes from './routes/gmlogs.routes';
 import searchRoutes from './routes/search.routes';
+import alertsRoutes from './routes/alerts.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -42,6 +43,7 @@ app.use('/api/packages', packageRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/admin/agents', agentRoutes);
 app.use('/api/config', configRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/admin/settings', settingsRoutes);
@@ -51,6 +53,7 @@ app.use('/api/admin/shop', shopAdminRoutes);
 app.use('/api/admin/server', serverRoutes);
 app.use('/api/admin/gmlogs', gmLogsRoutes);
 app.use('/api/admin/search', searchRoutes);
+app.use('/api/admin/alerts', alertsRoutes);
 
 // Health Check - แสดงสถานะ database ทั้งหมด
 app.get('/api/health', (_, res) => {

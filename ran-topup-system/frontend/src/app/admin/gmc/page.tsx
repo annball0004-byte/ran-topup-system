@@ -326,12 +326,14 @@ export default function GMCPage() {
             <div className="space-y-2">
               {[
                 { icon: '📊', label: 'Dashboard', href: '/admin' },
+                { icon: '🔔', label: 'แจ้งเตือน', href: '/admin/alerts' },
                 { icon: '👥', label: 'จัดการผู้ใช้', href: '/admin/users' },
                 { icon: '🎮', label: 'ตัวละคร', href: '/admin/characters' },
                 { icon: '⚔️', label: 'กิลด์', href: '/admin/guilds' },
                 { icon: '🎛️', label: 'GM Command', href: '/admin/gmc', active: true },
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
+                { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
               ].map((item, i) => (
                 <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
