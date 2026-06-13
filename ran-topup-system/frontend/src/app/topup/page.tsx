@@ -2,304 +2,250 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 
-interface Package {
-  PackageID: number;
-  PackageName: string;
-  Price: number;
-  Point: number;
-  BonusPoint: number;
-  DiscountPercent: number;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
-export default function TopUpPage() {
+const AMOUNTS = [50, 100, 200, 300, 500, 1000];
+
+export default function TopupPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [packages, setPackages] = useState<Package[]>([]);
-  const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState('');
-  const [userId, setUserId] = useState('');
+  const [amount, setAmount] = useState<number>(0);
+  const [customAmount, setCustomAmount] = useState('');
   const [loading, setLoading] = useState(false);
-  const [orderResult, setOrderResult] = useState<any>(null);
+  const [step, setStep] = useState<'select' | 'qr' | 'confirm' | 'done'>('select');
+  const [topupData, setTopupData] = useState<any>(null);
+  const [countdown, setCountdown] = useState(0);
+  const [userId, setUserId] = useState('');
 
   useEffect(() => {
-    fetchPackages();
+    const stored = localStorage.getItem('userId') || '';
+    setUserId(stored);
   }, []);
 
-  const fetchPackages = async () => {
+  // Countdown timer
+  useEffect(() => {
+    if (step !== 'qr' || !topupData?.timeOut) return;
+    setCountdown(topupData.timeOut);
+    const timer = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setStep('select');
+          alert('หมดเวลาชำระเงิน กรุณาทำรายการใหม่');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [step, topupData]);
+
+  const handleTopup = async () => {
+    const finalAmount = amount || Number(customAmount);
+    if (!finalAmount || finalAmount < 10) {
+      alert('กรุณาเลือกหรือกรอกจำนวนเงิน (ขั้นต่ำ 10 บาท)');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/packages`);
+      const token = localStorage.getItem('userToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/topup/create`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ amount: finalAmount, userId: userId || 'guest' })
+      });
       const data = await res.json();
+
       if (data.success) {
-        setPackages(data.packages);
+        setTopupData(data);
+        setStep('qr');
       } else {
-        console.error('Failed to fetch packages:', data.error);
+        alert(data.error || 'ไม่สามารถสร้างรายการได้');
       }
     } catch (error) {
-      console.error('Failed to fetch packages:', error);
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
     }
-  };
-
-  const handleSelectPackage = (pkg: Package) => {
-    setSelectedPackage(pkg);
-    setStep(2);
-  };
-
-  const handleSelectPayment = (method: string) => {
-    setPaymentMethod(method);
-    setStep(3);
+    setLoading(false);
   };
 
   const handleConfirm = async () => {
-    if (!selectedPackage || !userId || !paymentMethod) return;
-    
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/orders/create`, {
+      const token = localStorage.getItem('userToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/topup/confirm`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          packageId: selectedPackage.PackageID,
-          userId,
-          gameCode: 'ran-online',
-          paymentMethod
-        })
+        headers,
+        body: JSON.stringify({ topupId: topupData.topupId })
       });
-      
       const data = await res.json();
+
       if (data.success) {
-        setOrderResult(data.order);
-        setStep(4);
+        setStep('done');
+      } else {
+        alert(data.message || 'ยังไม่พบการชำระเงิน ลองใหม่อีกครั้ง');
       }
     } catch (error) {
-      console.error('Failed to create order');
-    } finally {
-      setLoading(false);
+      alert('เกิดข้อผิดพลาด');
     }
+    setLoading(false);
+  };
+
+  const handleCancel = async () => {
+    try {
+      const token = localStorage.getItem('userToken');
+      const headers: any = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      await fetch(`${API_URL}/topup/cancel`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ topupId: topupData.topupId })
+      });
+    } catch {}
+    setStep('select');
+    setTopupData(null);
+  };
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
   return (
     <main className="min-h-screen bg-ran-dark">
-      {/* Header */}
-      <header className="bg-ran-dark-100 border-b border-ran-red/20 px-6 py-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-ran-red rounded-lg flex items-center justify-center">
-              <span className="font-display font-bold text-white">R</span>
-            </div>
-            <span className="font-display font-bold text-xl text-white">RAN TOP-UP</span>
-          </Link>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400">Welcome, Player</span>
-            <Link href="/login" className="text-ran-red hover:underline">ออกจากระบบ</Link>
+      <div className="max-w-lg mx-auto p-4">
+        {/* Header */}
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-ran-red rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <span className="text-3xl">💳</span>
           </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Step Indicator */}
-        <div className="flex justify-center mb-10">
-          <div className="flex items-center gap-4">
-            {['เลือกแพ็กเกจ', 'เลือกช่องทางชำระเงิน', 'ยืนยันคำสั่งซื้อ', 'ชำระเงิน'].map((label, i) => (
-              <div key={i} className="flex items-center">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  step > i + 1 ? 'bg-green-500' : step === i + 1 ? 'bg-ran-red' : 'bg-gray-700'
-                }`}>
-                  {step > i + 1 ? '✓' : i + 1}
-                </div>
-                <span className={`ml-2 text-sm ${step === i + 1 ? 'text-white' : 'text-gray-500'}`}>
-                  {label}
-                </span>
-                {i < 3 && <div className="w-12 h-0.5 bg-gray-700 mx-4"></div>}
-              </div>
-            ))}
-          </div>
+          <h1 className="font-display text-2xl font-bold text-white">เติมเงิน</h1>
+          <p className="text-gray-400 font-thai text-sm">เติมเงินเข้าระบบ RAN Online</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-2">
-            {/* Step 1: Select Package */}
-            {step === 1 && (
-              <div>
-                <h2 className="font-display text-2xl font-bold mb-6">เลือกแพ็กเกจเติมเงิน</h2>
-                <div className="grid md:grid-cols-3 gap-4">
-                  {packages.map((pkg) => (
-                    <div
-                      key={pkg.PackageID}
-                      onClick={() => handleSelectPackage(pkg)}
-                      className="package-card text-center cursor-pointer"
-                    >
-                      {pkg.DiscountPercent > 0 && (
-                        <span className="discount-badge">-{pkg.DiscountPercent}%</span>
-                      )}
-                      <div className="point text-lg mb-2">{pkg.Point.toLocaleString()} Point</div>
-                      <div className="price">฿{pkg.Price}</div>
-                      {pkg.BonusPoint > 0 && (
-                        <div className="text-green-400 text-sm mt-2">+{pkg.BonusPoint} โบนัส</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 2: Select Payment */}
-            {step === 2 && (
-              <div>
-                <h2 className="font-display text-2xl font-bold mb-6">เลือกช่องทางชำระเงิน</h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {[
-                    { id: 'promptpay', name: 'PromptPay', icon: '💳', desc: 'ไม่มีค่าธรรมเนียม' },
-                    { id: 'truemoney', name: 'TrueMoney Wallet', icon: '📱', desc: 'ค่าธรรมเนียม 1.5%' },
-                    { id: 'bank', name: 'โอนธนาคาร', icon: '🏦', desc: 'ค่าธรรมเนียม 10 บาท' },
-                    { id: 'credit', name: 'บัตรเครดิต/เดบิต', icon: '💳', desc: 'ค่าธรรมเนียม 2.5%' },
-                  ].map((method) => (
-                    <div
-                      key={method.id}
-                      onClick={() => handleSelectPayment(method.id)}
-                      className={`card-ran cursor-pointer transition-all ${
-                        paymentMethod === method.id ? 'border-ran-red ring-2 ring-ran-red/50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <span className="text-4xl">{method.icon}</span>
-                        <div>
-                          <div className="font-bold text-white">{method.name}</div>
-                          <div className="text-sm text-gray-400">{method.desc}</div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Confirm */}
-            {step === 3 && (
-              <div>
-                <h2 className="font-display text-2xl font-bold mb-6">ยืนยันคำสั่งซื้อ</h2>
-                <div className="card-ran">
-                  <div className="mb-4">
-                    <label className="block text-sm text-gray-400 mb-2">ไอดีเกม</label>
-                    <input
-                      type="text"
-                      value={userId}
-                      onChange={(e) => setUserId(e.target.value)}
-                      className="input-ran"
-                      placeholder="กรอกไอดีเกม"
-                    />
-                  </div>
-                  
-                  <div className="border-t border-gray-700 pt-4 mt-4">
-                    <div className="flex justify-between mb-2">
-                      <span className="text-gray-400">แพ็กเกจ</span>
-                      <span className="text-white">{selectedPackage?.PackageName}</span>
-                    </div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-gray-400">Point</span>
-                      <span className="text-ran-red font-bold">{selectedPackage?.Point.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between mb-2">
-                      <span className="text-gray-400">โบนัส</span>
-                      <span className="text-green-400">+{selectedPackage?.BonusPoint.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between text-xl font-bold border-t border-gray-700 pt-4 mt-4">
-                      <span className="text-white">ยอดชำระ</span>
-                      <span className="text-ran-red">฿{selectedPackage?.Price}</span>
-                    </div>
-                  </div>
-                  
-                  <button
-                    onClick={handleConfirm}
-                    disabled={loading || !userId}
-                    className="w-full btn-ran mt-6 py-4 text-lg disabled:opacity-50"
-                  >
-                    {loading ? 'กำลังดำเนินการ...' : 'ยืนยันคำสั่งซื้อ'}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Payment */}
-            {step === 4 && orderResult && (
-              <div>
-                <h2 className="font-display text-2xl font-bold mb-6">ชำระเงิน</h2>
-                <div className="card-ran text-center">
-                  {paymentMethod === 'promptpay' && (
-                    <div>
-                      <div className="bg-white p-4 rounded-xl inline-block mb-4">
-                        <img src={orderResult.qrCodeUrl} alt="QR Code" className="w-64 h-64" />
-                      </div>
-                      <p className="text-gray-400 mb-2">สแกน QR Code ด้วยแอปธนาคาร</p>
-                      <p className="text-2xl font-bold text-ran-red">฿{orderResult.amount}</p>
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 p-4 bg-ran-dark rounded-xl">
-                    <p className="text-sm text-gray-400">รหัสคำสั่งซื้อ</p>
-                    <p className="font-mono text-white">{orderResult.orderNo}</p>
-                  </div>
-                  
-                  <p className="text-yellow-400 text-sm mt-4">
-                    ⏱ คำสั่งซื้อจะหมดอายุภายใน 1 ชั่วโมง
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* User Info Card */}
+        {/* Step 1: Select Amount */}
+        {step === 'select' && (
+          <div className="space-y-4">
             <div className="card-ran">
-              <h3 className="font-display text-lg font-bold mb-4">ข้อมูลผู้ใช้</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">ไอดีเกม</span>
-                  <span className="text-white">{userId || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Point</span>
-                  <span className="text-ran-red font-bold">0</span>
-                </div>
+              <h3 className="font-bold text-white mb-3 font-thai">เลือกจำนวนเงิน</h3>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {AMOUNTS.map(a => (
+                  <button key={a} onClick={() => { setAmount(a); setCustomAmount(''); }}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                      amount === a ? 'border-ran-red bg-ran-red/10' : 'border-gray-700 hover:border-gray-500'
+                    }`}>
+                    <div className="text-2xl font-bold text-white">฿{a}</div>
+                  </button>
+                ))}
+              </div>
+              <div>
+                <label className="text-gray-400 text-sm font-thai">หรือกรอกจำนวนเอง</label>
+                <input type="number" min="10" placeholder="จำนวนเงิน (บาท)"
+                  value={customAmount} onChange={e => { setCustomAmount(e.target.value); setAmount(0); }}
+                  className="w-full bg-ran-dark border border-ran-red/20 rounded-lg px-4 py-3 text-white text-lg mt-1" />
               </div>
             </div>
 
-            {/* Order Summary */}
-            {selectedPackage && (
-              <div className="card-ran">
-                <h3 className="font-display text-lg font-bold mb-4">สรุปคำสั่งซื้อ</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">แพ็กเกจ</span>
-                    <span className="text-white">{selectedPackage.Point.toLocaleString()} Point</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">โบนัส</span>
-                    <span className="text-green-400">+{selectedPackage.BonusPoint}</span>
-                  </div>
-                  <div className="border-t border-gray-700 pt-3 flex justify-between text-lg">
-                    <span className="text-white font-bold">ยอดชำระ</span>
-                    <span className="text-ran-red font-bold">฿{selectedPackage.Price}</span>
+            <div className="card-ran">
+              <label className="text-gray-400 text-sm font-thai">UserID (สำหรับอ้างอิง)</label>
+              <input type="text" placeholder="เช่น username หรือ เบอร์โทร"
+                value={userId} onChange={e => setUserId(e.target.value)}
+                className="w-full bg-ran-dark border border-ran-red/20 rounded-lg px-4 py-2 text-white mt-1" />
+            </div>
+
+            <button onClick={handleTopup} disabled={loading || (!amount && !customAmount)}
+              className="w-full btn-primary py-4 text-lg font-bold disabled:opacity-50">
+              {loading ? '⏳ กำลังสร้างรายการ...' : '💳 สร้าง QR พร้อมเพย์'}
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: QR Payment */}
+        {step === 'qr' && topupData && (
+          <div className="space-y-4">
+            <div className="card-ran text-center">
+              <div className="text-gray-400 text-sm font-thai mb-2">จำนวนเงินที่ต้องชำระ</div>
+              <div className="text-4xl font-bold text-yellow-400 mb-2">
+                ฿{(topupData.amountCheck || topupData.amount).toLocaleString()}
+              </div>
+              <div className="text-gray-500 text-xs mb-4">รายการ: {topupData.topupId}</div>
+
+              {/* QR Code */}
+              {topupData.qrBase64 && (
+                <div className="flex justify-center mb-4">
+                  <div className="bg-white p-4 rounded-xl">
+                    <img src={`data:image/png;base64,${topupData.qrBase64}`} alt="QR Code" className="w-64 h-64" />
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Promo Banner */}
-            <div className="card-ran bg-gradient-to-r from-ran-red/20 to-transparent">
-              <h3 className="font-display text-lg font-bold mb-2">🎉 โปรโมชั่นพิเศษ</h3>
-              <p className="text-sm text-gray-400">เติมเงินวันนี้ รับโบนัสเพิ่ม 10%</p>
-              <p className="text-xs text-gray-500 mt-2">*เฉพาะแพ็กเกจ 699 บาทขึ้นไป</p>
+              {/* URL Pay (Maemanee) */}
+              {topupData.urlPay && (
+                <div className="mb-4">
+                  <a href={topupData.urlPay} target="_blank" rel="noopener noreferrer"
+                    className="inline-block bg-ran-red/20 text-ran-red border border-ran-red/30 px-6 py-2 rounded-lg hover:bg-ran-red/30">
+                    🔗 เปิดหน้าชำระเงิน (บิลแม่มณี)
+                  </a>
+                </div>
+              )}
+
+              {/* Countdown */}
+              <div className={`text-lg font-mono font-bold ${countdown < 60 ? 'text-red-400' : 'text-gray-300'}`}>
+                ⏱️ เวลาคงเหลือ: {formatTime(countdown)}
+              </div>
+            </div>
+
+            <div className="card-ran bg-yellow-500/5 border-yellow-500/20">
+              <h4 className="font-bold text-yellow-400 mb-2 font-thai">📱 วิธีชำระเงิน</h4>
+              <ol className="text-gray-300 text-sm font-thai space-y-1">
+                <li>1. เปิดแอปธนาคารหรือ TrueMoney Wallet</li>
+                <li>2. สแกน QR Code ด้านบน</li>
+                <li>3. โอนเงินตามจำนวนที่แสดง</li>
+                <li>4. กด "ชำระแล้ว" ด้านล่าง</li>
+              </ol>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={handleConfirm} disabled={loading}
+                className="flex-1 bg-green-500 text-white py-4 rounded-xl font-bold text-lg hover:bg-green-600 disabled:opacity-50">
+                {loading ? '⏳ กำลังตรวจสอบ...' : '✅ ชำระแล้ว'}
+              </button>
+              <button onClick={handleCancel}
+                className="bg-gray-700 text-gray-300 px-6 py-4 rounded-xl font-bold hover:bg-gray-600">
+                ยกเลิก
+              </button>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Step 3: Done */}
+        {step === 'done' && (
+          <div className="card-ran text-center py-12">
+            <div className="text-6xl mb-4">✅</div>
+            <h2 className="text-2xl font-display font-bold text-green-400 mb-2">ชำระเงินสำเร็จ!</h2>
+            <p className="text-gray-400 font-thai">จำนวนเงิน ฿{topupData?.amount?.toLocaleString()} ถูกตัดยอดแล้ว</p>
+            <p className="text-gray-500 text-sm mt-2">รายการ: {topupData?.topupId}</p>
+            <button onClick={() => { setStep('select'); setTopupData(null); setAmount(0); setCustomAmount(''); }}
+              className="btn-primary px-8 py-3 mt-6">
+              เติมเงินอีกครั้ง
+            </button>
+          </div>
+        )}
+
+        {/* Back button */}
+        {step !== 'select' && step !== 'done' && (
+          <button onClick={() => setStep('select')} className="w-full text-center text-gray-400 mt-4 hover:text-white font-thai">
+            ← เลือกจำนวนเงินใหม่
+          </button>
+        )}
       </div>
     </main>
   );

@@ -1,0 +1,18 @@
+{
+  "enabled": false,
+  "provider": "maemanee",
+  "maemanee": {
+    "username": "",
+    "password": "",
+    "conId": ""
+  },
+  "normal": {
+    "username": "",
+    "password": "",
+    "conId": "",
+    "accode": "",
+    "promptpayId": "",
+    "promptpayType": "01",
+    "accountNo": ""
+  }
+}

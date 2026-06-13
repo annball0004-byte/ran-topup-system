@@ -21,7 +21,8 @@ const MENU_ITEMS = [
   { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents', key: 'agents' },
   { section: 'ระบบ' },
   { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search', key: 'search' },
-  { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings', key: 'settings' },
+  { icon: '⚙️', label: 'ตั้งค่าทั่วไป', href: '/admin/settings', key: 'settings' },
+  { icon: '💳', label: 'ตั้งค่าเติมเงิน', href: '/admin/settings/payment', key: 'settings-payment' },
 ];
 
 interface AdminSidebarProps {
