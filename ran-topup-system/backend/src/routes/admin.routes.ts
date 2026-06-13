@@ -11,10 +11,23 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: any, res: Resp
     const userPool = getUserPool();
     const gamePool = getGamePool();
     
-    const [usersResult, charsResult, guildsResult] = await Promise.all([
+    const [usersResult, charsResult, guildsResult, onlineResult, schoolResult] = await Promise.all([
       userPool.request().query(`SELECT COUNT(*) as count FROM UserInfo`),
       gamePool.request().query(`SELECT COUNT(*) as count FROM ChaInfo WHERE ChaDeleted = 0`),
-      gamePool.request().query(`SELECT COUNT(*) as count FROM GuildInfo`)
+      gamePool.request().query(`SELECT COUNT(*) as count FROM GuildInfo`),
+      gamePool.request().query(`SELECT COUNT(*) as count FROM ChaInfo WHERE ChaOnline = 1 AND ChaDeleted = 0`),
+      gamePool.request().query(`
+        SELECT 
+          CASE ChaSchool
+            WHEN 1 THEN 'Bulkan'
+            WHEN 2 THEN 'Dawnbreak'
+            WHEN 3 THEN 'Encab'
+            ELSE 'Unknown'
+          END as name,
+          COUNT(*) as count
+        FROM ChaInfo WHERE ChaDeleted = 0
+        GROUP BY ChaSchool
+      `)
     ]);
     
     res.json({
@@ -22,13 +35,101 @@ router.get('/stats', authenticateToken, requireAdmin, async (req: any, res: Resp
       stats: {
         totalUsers: usersResult.recordset[0].count,
         totalCharacters: charsResult.recordset[0].count,
-        totalGuilds: guildsResult.recordset[0].count
+        totalGuilds: guildsResult.recordset[0].count,
+        onlinePlayers: onlineResult.recordset[0].count,
+        schoolDistribution: schoolResult.recordset
       }
     });
     
   } catch (error: any) {
     console.error('Get stats error:', error);
     res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + error.message });
+  }
+});
+
+// Dashboard Charts Data
+router.get('/charts', authenticateToken, requireAdmin, async (req: any, res: Response) => {
+  try {
+    const gamePool = getGamePool();
+    const logPool = getUserPool();
+    
+    const [classResult, levelResult, onlineResult, recentLogins] = await Promise.all([
+      gamePool.request().query(`
+        SELECT 
+          CASE ChaClass
+            WHEN 1 THEN 'Brawler'
+            WHEN 2 THEN 'Knight'
+            WHEN 4 THEN 'Archer'
+            WHEN 8 THEN 'Shaman'
+            WHEN 16 THEN 'Extreme Fighter'
+            WHEN 32 THEN 'Extreme Gunner'
+            WHEN 64 THEN 'Gunner'
+            WHEN 128 THEN 'Assassin'
+            ELSE 'Other (class=' + CAST(ChaClass AS VARCHAR) + ')'
+          END as name,
+          COUNT(*) as count
+        FROM ChaInfo WHERE ChaDeleted = 0
+        GROUP BY ChaClass
+        ORDER BY COUNT(*) DESC
+      `),
+      gamePool.request().query(`
+        SELECT 
+          CASE 
+            WHEN ChaLevel BETWEEN 1 AND 30 THEN '1-30'
+            WHEN ChaLevel BETWEEN 31 AND 60 THEN '31-60'
+            WHEN ChaLevel BETWEEN 61 AND 100 THEN '61-100'
+            WHEN ChaLevel BETWEEN 101 AND 150 THEN '101-150'
+            WHEN ChaLevel BETWEEN 151 AND 200 THEN '151-200'
+            WHEN ChaLevel > 200 THEN '201+'
+            ELSE 'Unknown'
+          END as name,
+          COUNT(*) as count
+        FROM ChaInfo WHERE ChaDeleted = 0
+        GROUP BY 
+          CASE 
+            WHEN ChaLevel BETWEEN 1 AND 30 THEN '1-30'
+            WHEN ChaLevel BETWEEN 31 AND 60 THEN '31-60'
+            WHEN ChaLevel BETWEEN 61 AND 100 THEN '61-100'
+            WHEN ChaLevel BETWEEN 101 AND 150 THEN '101-150'
+            WHEN ChaLevel BETWEEN 151 AND 200 THEN '151-200'
+            WHEN ChaLevel > 200 THEN '201+'
+            ELSE 'Unknown'
+          END
+        ORDER BY MIN(ChaLevel)
+      `),
+      gamePool.request().query(`
+        SELECT 
+          CASE 
+            WHEN ChaOnline = 1 THEN 'Online'
+            ELSE 'Offline'
+          END as name,
+          COUNT(*) as count
+        FROM ChaInfo WHERE ChaDeleted = 0
+        GROUP BY ChaOnline
+      `),
+      logPool.request().query(`
+        SELECT TOP 20 
+          UserID as name,
+          LastLoginDate as date
+        FROM UserInfo 
+        WHERE LastLoginDate IS NOT NULL
+        ORDER BY LastLoginDate DESC
+      `)
+    ]);
+    
+    res.json({
+      success: true,
+      charts: {
+        classDistribution: classResult.recordset,
+        levelDistribution: levelResult.recordset,
+        onlineStatus: onlineResult.recordset,
+        recentLogins: recentLogins.recordset
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('Get charts error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

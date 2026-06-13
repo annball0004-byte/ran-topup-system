@@ -3,18 +3,36 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
+import { Pie, Bar } from 'react-chartjs-2';
+
+ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+const CLASS_COLORS = [
+  '#C41E3A', '#FF6B35', '#FFD700', '#00FF87', '#00BFFF', '#9B59B6', '#FF69B4', '#FFFFFF'
+];
 
 interface Stats {
   totalUsers: number;
   totalCharacters: number;
   totalGuilds: number;
+  onlinePlayers: number;
+  schoolDistribution: any[];
+}
+
+interface Charts {
+  classDistribution: any[];
+  levelDistribution: any[];
+  onlineStatus: any[];
+  recentLogins: any[];
 }
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [charts, setCharts] = useState<Charts | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState('Admin');
 
@@ -30,19 +48,22 @@ export default function AdminDashboard() {
       } catch {}
     }
     
-    fetchStats();
+    fetchData();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchData = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const res = await fetch(`${API_URL}/admin/stats`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) setStats(data.stats);
+      const [statsRes, chartsRes] = await Promise.all([
+        fetch(`${API_URL}/admin/stats`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/admin/charts`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      const statsData = await statsRes.json();
+      const chartsData = await chartsRes.json();
+      if (statsData.success) setStats(statsData.stats);
+      if (chartsData.success) setCharts(chartsData.charts);
     } catch (error) {
-      console.error('Fetch stats error');
+      console.error('Fetch data error');
     } finally {
       setLoading(false);
     }
@@ -54,10 +75,61 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  const classChartData = charts ? {
+    labels: charts.classDistribution.map(c => c.name),
+    datasets: [{
+      data: charts.classDistribution.map(c => c.count),
+      backgroundColor: CLASS_COLORS.slice(0, charts.classDistribution.length),
+      borderWidth: 0
+    }]
+  } : null;
+
+  const levelChartData = charts ? {
+    labels: charts.levelDistribution.map(c => c.name),
+    datasets: [{
+      label: 'จำนวนตัวละคร',
+      data: charts.levelDistribution.map(c => c.count),
+      backgroundColor: '#C41E3A80',
+      borderColor: '#C41E3A',
+      borderWidth: 1
+    }]
+  } : null;
+
+  const onlineChartData = charts ? {
+    labels: charts.onlineStatus.map(c => c.name),
+    datasets: [{
+      data: charts.onlineStatus.map(c => c.count),
+      backgroundColor: charts.onlineStatus.map(c => c.name === 'Online' ? '#00FF8780' : '#FF6B3580'),
+      borderWidth: 0
+    }]
+  } : null;
+
+  const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: { color: '#9CA3AF', font: { size: 11 }, padding: 12, usePointStyle: true }
+      }
+    }
+  };
+
+  const barOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1a1a2e' } },
+      y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1a1a2e' }, beginAtZero: true }
+    }
+  };
+
   return (
     <main className="min-h-screen bg-ran-dark">
       <div className="flex">
-        {/* Sidebar */}
         <aside className="sidebar">
           <div className="p-6 border-b border-ran-red/20">
             <div className="flex items-center gap-2">
@@ -80,6 +152,8 @@ export default function AdminDashboard() {
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
                 { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
+                { icon: '📋', label: 'GM Logs', href: '/admin/gmlogs' },
+                { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search' },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
               ].map((item, i) => (
                 <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
@@ -98,7 +172,6 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <div className="flex-1 ml-64">
           <header className="bg-ran-dark-100 border-b border-ran-red/20 px-6 py-4">
             <div className="flex justify-between items-center">
@@ -107,6 +180,7 @@ export default function AdminDashboard() {
                 <p className="text-gray-400 font-thai">ภาพรวมระบบเติมเงิน RAN Online</p>
               </div>
               <div className="flex items-center gap-4">
+                <button onClick={fetchData} className="btn-secondary px-3 py-1 text-sm">🔄</button>
                 <span className="text-gray-400">👤 {adminName}</span>
               </div>
             </div>
@@ -118,87 +192,118 @@ export default function AdminDashboard() {
             ) : (
               <>
                 {/* Stats Cards */}
-                <div className="grid md:grid-cols-3 gap-6 mb-8">
+                <div className="grid md:grid-cols-4 gap-4 mb-6">
                   <Link href="/admin/users" className="card-ran hover:border-ran-red/50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:bg-blue-500/30 transition-all">
-                        <span className="text-3xl">👥</span>
+                      <div className="w-14 h-14 bg-blue-500/20 rounded-xl flex items-center justify-center group-hover:bg-blue-500/30 transition-all">
+                        <span className="text-2xl">👥</span>
                       </div>
                       <div>
-                        <div className="text-3xl font-bold text-white">{(stats?.totalUsers || 0).toLocaleString()}</div>
-                        <div className="text-gray-400 font-thai">ผู้ใช้ทั้งหมด</div>
+                        <div className="text-2xl font-bold text-white">{(stats?.totalUsers || 0).toLocaleString()}</div>
+                        <div className="text-gray-400 text-sm font-thai">ผู้ใช้ทั้งหมด</div>
                       </div>
                     </div>
                   </Link>
                   
                   <Link href="/admin/characters" className="card-ran hover:border-ran-red/50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:bg-green-500/30 transition-all">
-                        <span className="text-3xl">🎮</span>
+                      <div className="w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:bg-green-500/30 transition-all">
+                        <span className="text-2xl">🎮</span>
                       </div>
                       <div>
-                        <div className="text-3xl font-bold text-white">{(stats?.totalCharacters || 0).toLocaleString()}</div>
-                        <div className="text-gray-400 font-thai">ตัวละครทั้งหมด</div>
+                        <div className="text-2xl font-bold text-white">{(stats?.totalCharacters || 0).toLocaleString()}</div>
+                        <div className="text-gray-400 text-sm font-thai">ตัวละครทั้งหมด</div>
                       </div>
                     </div>
                   </Link>
                   
                   <Link href="/admin/guilds" className="card-ran hover:border-ran-red/50 transition-all cursor-pointer group">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
-                        <span className="text-3xl">⚔️</span>
+                      <div className="w-14 h-14 bg-purple-500/20 rounded-xl flex items-center justify-center group-hover:bg-purple-500/30 transition-all">
+                        <span className="text-2xl">⚔️</span>
                       </div>
                       <div>
-                        <div className="text-3xl font-bold text-white">{(stats?.totalGuilds || 0).toLocaleString()}</div>
-                        <div className="text-gray-400 font-thai">กิลด์ทั้งหมด</div>
+                        <div className="text-2xl font-bold text-white">{(stats?.totalGuilds || 0).toLocaleString()}</div>
+                        <div className="text-gray-400 text-sm font-thai">กิลด์ทั้งหมด</div>
+                      </div>
+                    </div>
+                  </Link>
+
+                  <Link href="/admin/server" className="card-ran hover:border-ran-red/50 transition-all cursor-pointer group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-green-500/20 rounded-xl flex items-center justify-center group-hover:bg-green-500/30 transition-all">
+                        <span className="text-2xl">🟢</span>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-400">{(stats?.onlinePlayers || 0).toLocaleString()}</div>
+                        <div className="text-gray-400 text-sm font-thai">Online ตอนนี้</div>
                       </div>
                     </div>
                   </Link>
                 </div>
 
-                {/* Quick Actions */}
-                <div className="card-ran mb-8">
-                  <h3 className="font-display text-lg font-bold text-white mb-4">⚡ เมนูลัด</h3>
-                  <div className="grid md:grid-cols-4 gap-4">
-                    <Link href="/admin/users" className="p-4 bg-ran-dark rounded-lg hover:bg-ran-dark-50 transition-all text-center">
-                      <span className="text-2xl block mb-2">👥</span>
-                      <span className="text-white font-thai">จัดการผู้ใช้</span>
-                    </Link>
-                    <Link href="/admin/characters" className="p-4 bg-ran-dark rounded-lg hover:bg-ran-dark-50 transition-all text-center">
-                      <span className="text-2xl block mb-2">🎮</span>
-                      <span className="text-white font-thai">จัดการตัวละคร</span>
-                    </Link>
-                    <Link href="/admin/guilds" className="p-4 bg-ran-dark rounded-lg hover:bg-ran-dark-50 transition-all text-center">
-                      <span className="text-2xl block mb-2">⚔️</span>
-                      <span className="text-white font-thai">จัดการกิลด์</span>
-                    </Link>
-                    <Link href="/admin/settings" className="p-4 bg-ran-dark rounded-lg hover:bg-ran-dark-50 transition-all text-center">
-                      <span className="text-2xl block mb-2">⚙️</span>
-                      <span className="text-white font-thai">ตั้งค่าระบบ</span>
-                    </Link>
+                {/* Charts Row */}
+                <div className="grid md:grid-cols-3 gap-6 mb-6">
+                  {/* Class Distribution Pie */}
+                  <div className="card-ran">
+                    <h3 className="font-display text-sm font-bold text-white mb-3">⚔️ สายอาชีพ</h3>
+                    <div className="h-64">
+                      {classChartData && <Pie data={classChartData} options={pieOptions} />}
+                    </div>
+                  </div>
+
+                  {/* Level Distribution Bar */}
+                  <div className="card-ran">
+                    <h3 className="font-display text-sm font-bold text-white mb-3">📊 ระดับเลเวล</h3>
+                    <div className="h-64">
+                      {levelChartData && <Bar data={levelChartData} options={barOptions} />}
+                    </div>
+                  </div>
+
+                  {/* Online Status Pie */}
+                  <div className="card-ran">
+                    <h3 className="font-display text-sm font-bold text-white mb-3">🟢 สถานะ Online/Offline</h3>
+                    <div className="h-64">
+                      {onlineChartData && <Pie data={onlineChartData} options={pieOptions} />}
+                    </div>
                   </div>
                 </div>
 
-                {/* System Info */}
+                {/* Recent Logins */}
+                {charts && charts.recentLogins.length > 0 && (
+                  <div className="card-ran mb-6">
+                    <h3 className="font-display text-sm font-bold text-white mb-3">🕐 Login ล่าสุด</h3>
+                    <div className="grid grid-cols-4 gap-2">
+                      {charts.recentLogins.map((login: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 p-2 bg-ran-dark rounded-lg text-xs">
+                          <span className="text-gray-500">{i + 1}.</span>
+                          <span className="text-white font-bold truncate">{login.name}</span>
+                          <span className="text-gray-500 ml-auto whitespace-nowrap">
+                            {login.date ? new Date(login.date).toLocaleString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Actions */}
                 <div className="card-ran">
-                  <h3 className="font-display text-lg font-bold text-white mb-4">ℹ️ ข้อมูลระบบ</h3>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-ran-dark rounded-lg">
-                      <p className="text-gray-400 text-sm">Backend Server</p>
-                      <p className="text-white font-mono">localhost:3001</p>
-                    </div>
-                    <div className="p-4 bg-ran-dark rounded-lg">
-                      <p className="text-gray-400 text-sm">Frontend Server</p>
-                      <p className="text-white font-mono">localhost:3000</p>
-                    </div>
-                    <div className="p-4 bg-ran-dark rounded-lg">
-                      <p className="text-gray-400 text-sm">Database</p>
-                      <p className="text-green-400 font-mono">Connected ✓</p>
-                    </div>
-                    <div className="p-4 bg-ran-dark rounded-lg">
-                      <p className="text-gray-400 text-sm">Version</p>
-                      <p className="text-white font-mono">RAN TOP-UP PRO v1.0</p>
-                    </div>
+                  <h3 className="font-display text-sm font-bold text-white mb-3">⚡ เมนูลัด</h3>
+                  <div className="grid md:grid-cols-6 gap-3">
+                    {[
+                      { icon: '👥', label: 'จัดการผู้ใช้', href: '/admin/users' },
+                      { icon: '🎮', label: 'ตัวละคร', href: '/admin/characters' },
+                      { icon: '⚔️', label: 'กิลด์', href: '/admin/guilds' },
+                      { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
+                      { icon: '🛍️', label: 'ร้านค้า', href: '/admin/shop' },
+                      { icon: '🔔', label: 'แจ้งเตือน', href: '/admin/alerts' },
+                    ].map((item, i) => (
+                      <Link key={i} href={item.href} className="p-3 bg-ran-dark rounded-lg hover:bg-ran-dark-50 transition-all text-center">
+                        <span className="text-xl block mb-1">{item.icon}</span>
+                        <span className="text-white text-xs font-thai">{item.label}</span>
+                      </Link>
+                    ))}
                   </div>
                 </div>
               </>
