@@ -21,5 +21,36 @@
         "by": "admin"
       }
     ]
+  },
+  {
+    "id": "AG1781329764426",
+    "username": "testagent",
+    "password": "$2a$10$wDJ9IhtTA9K9SVyFDGCiveK4g7XHqMpZRVYJMt0yTtDSTHx.dNhgK",
+    "name": "Test Agent",
+    "email": "test@test.com",
+    "phone": "0812345678",
+    "commissionRate": 15,
+    "creditLimit": 100000,
+    "balance": 49900,
+    "status": "active",
+    "level": "bronze",
+    "totalSalesEver": 100,
+    "createdAt": "2026-06-13T05:49:24.426Z",
+    "createdBy": "admin",
+    "updatedAt": "2026-06-13T05:49:24.448Z",
+    "creditHistory": [
+      {
+        "amount": -100,
+        "note": "ขายเติมเงินให้ 030445513",
+        "date": "2026-06-13T05:50:10.094Z",
+        "by": "testagent"
+      },
+      {
+        "amount": 50000,
+        "note": "Initial credit",
+        "date": "2026-06-13T05:49:24.448Z",
+        "by": "admin"
+      }
+    ]
   }
 ]

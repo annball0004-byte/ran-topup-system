@@ -23,6 +23,8 @@ const MENU_ITEMS = [
   { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search', key: 'search' },
   { icon: '⚙️', label: 'ตั้งค่าทั่วไป', href: '/admin/settings', key: 'settings' },
   { icon: '💳', label: 'ตั้งค่าเติมเงิน', href: '/admin/settings/payment', key: 'settings-payment' },
+  { icon: '💰', label: 'ค่าคอมมิชชั่น', href: '/admin/settings/commission', key: 'settings-commission' },
+  { icon: '🤖', label: 'Agent Login', href: '/agent/login', key: 'agent-login' },
 ];
 
 interface AdminSidebarProps {

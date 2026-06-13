@@ -1,0 +1,15 @@
+[
+  {
+    "id": "SAL1781329810120",
+    "agentId": "AG1781329764426",
+    "agentName": "Test Agent",
+    "userId": "030445513",
+    "userName": "030445513",
+    "amount": 100,
+    "commission": 15,
+    "commissionRate": 15,
+    "note": "Test sell",
+    "status": "completed",
+    "createdAt": "2026-06-13T05:50:10.120Z"
+  }
+]
