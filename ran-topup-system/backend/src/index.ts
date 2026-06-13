@@ -17,6 +17,9 @@ import settingsRoutes from './routes/settings.routes';
 import setupRoutes from './routes/setup.routes';
 import gmcRoutes from './routes/gmc.routes';
 import shopAdminRoutes from './routes/shop-admin.routes';
+import serverRoutes from './routes/server.routes';
+import gmLogsRoutes from './routes/gmlogs.routes';
+import searchRoutes from './routes/search.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,6 +48,9 @@ app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/setup', setupRoutes);
 app.use('/api/admin/gmc', gmcRoutes);
 app.use('/api/admin/shop', shopAdminRoutes);
+app.use('/api/admin/server', serverRoutes);
+app.use('/api/admin/gmlogs', gmLogsRoutes);
+app.use('/api/admin/search', searchRoutes);
 
 // Health Check - แสดงสถานะ database ทั้งหมด
 app.get('/api/health', (_, res) => {
