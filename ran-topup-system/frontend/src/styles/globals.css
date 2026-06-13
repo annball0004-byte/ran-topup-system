@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --ran-red: #C41E3A;
+  --ran-dark: #0D0D0F;
+  --ran-dark-lighter: #16161A;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--ran-dark);
+  color: #FFFFFF;
+  font-family: 'Rajdhani', 'Noto Sans Thai', sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ran-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C41E3A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A1182E;
+}
+
+/* Glow Effect */
+.glow-effect {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px #C41E3A, 0 0 10px #C41E3A;
+  }
+  to {
+    box-shadow: 0 0 20px #C41E3A, 0 0 30px #C41E3A;
+  }
+}
+
+/* Glass Effect */
+.glass-effect {
+  background: rgba(22, 22, 26, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(196, 30, 58, 0.2);
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #FFFFFF 0%, #C41E3A 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Button Styles */
+.btn-ran {
+  @apply px-6 py-3 bg-ran-red text-white font-semibold rounded-lg transition-all duration-300;
+}
+
+.btn-ran:hover {
+  @apply bg-ran-red-600 shadow-lg shadow-ran-red/50;
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  @apply px-6 py-3 border border-ran-red text-ran-red font-semibold rounded-lg transition-all duration-300;
+}
+
+.btn-outline:hover {
+  @apply bg-ran-red text-white;
+}
+
+/* Card Styles */
+.card-ran {
+  @apply bg-ran-dark-100 rounded-xl border border-ran-red/20 p-6;
+}
+
+.card-ran:hover {
+  @apply border-ran-red/50 shadow-lg shadow-ran-red/20;
+}
+
+/* Input Styles */
+.input-ran {
+  @apply w-full px-4 py-3 bg-ran-dark-50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-ran-red transition-colors;
+}
+
+.input-ran:focus {
+  @apply ring-2 ring-ran-red/50;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  @apply fixed left-0 top-0 h-full w-64 bg-ran-dark-100 border-r border-ran-red/20 flex flex-col;
+}
+
+.sidebar-item {
+  @apply flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-ran-red/10 transition-all cursor-pointer;
+}
+
+.sidebar-item.active {
+  @apply text-white bg-ran-red/20 border-r-2 border-ran-red;
+}
+
+/* Stat Card */
+.stat-card {
+  @apply card-ran flex items-center gap-4;
+}
+
+.stat-card .icon {
+  @apply w-14 h-14 rounded-xl flex items-center justify-center;
+}
+
+.stat-card .value {
+  @apply text-3xl font-display font-bold;
+}
+
+.stat-card .label {
+  @apply text-gray-400 text-sm;
+}
+
+/* Package Card */
+.package-card {
+  @apply card-ran relative overflow-hidden cursor-pointer transition-all duration-300;
+}
+
+.package-card:hover {
+  @apply scale-105 border-ran-red;
+}
+
+.package-card.selected {
+  @apply border-ran-red ring-2 ring-ran-red/50;
+}
+
+.package-card .discount-badge {
+  @apply absolute top-3 right-3 bg-ran-red text-white text-xs px-2 py-1 rounded-full;
+}
+
+.package-card .price {
+  @apply text-2xl font-display font-bold text-white;
+}
+
+.package-card .point {
+  @apply text-ran-red font-semibold;
+}
