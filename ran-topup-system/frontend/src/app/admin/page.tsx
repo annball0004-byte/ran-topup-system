@@ -77,6 +77,7 @@ export default function AdminDashboard() {
                 { icon: '⚔️', label: 'กิลด์', href: '/admin/guilds' },
                 { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
+                { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
               ].map((item, i) => (
                 <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
