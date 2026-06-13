@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
+import AdminSidebar from '@/components/AdminSidebar';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement);
 
@@ -69,12 +70,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('admin');
-    router.push('/admin/login');
-  };
-
   const classChartData = charts ? {
     labels: charts.classDistribution.map(c => c.name),
     datasets: [{
@@ -130,48 +125,7 @@ export default function AdminDashboard() {
   return (
     <main className="min-h-screen bg-ran-dark">
       <div className="flex">
-        <aside className="sidebar">
-          <div className="p-6 border-b border-ran-red/20">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-ran-red rounded-lg flex items-center justify-center">
-                <span className="font-display font-bold text-white">R</span>
-              </div>
-              <span className="font-display font-bold text-lg text-white">RAN TOP-UP</span>
-            </div>
-          </div>
-          
-          <nav className="flex-1 p-4">
-            <div className="space-y-2">
-              {[
-                { icon: '📊', label: 'Dashboard', href: '/admin', active: true },
-                { icon: '🔔', label: 'แจ้งเตือน', href: '/admin/alerts' },
-                { icon: '👥', label: 'จัดการผู้ใช้', href: '/admin/users' },
-                { icon: '🎮', label: 'ตัวละคร', href: '/admin/characters' },
-                { icon: '⚔️', label: 'กิลด์', href: '/admin/guilds' },
-                { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
-                { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
-                { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
-                { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
-                { icon: '📦', label: 'ประวัติคำสั่งซื้อ', href: '/admin/order-history' },
-                { icon: '📋', label: 'GM Logs', href: '/admin/gmlogs' },
-                { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search' },
-                { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
-              ].map((item, i) => (
-                <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="font-thai">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          </nav>
-          
-          <div className="p-4 border-t border-ran-red/20">
-            <button onClick={handleLogout} className="sidebar-item w-full text-left">
-              <span className="text-xl">🚪</span>
-              <span className="font-thai">ออกจากระบบ</span>
-            </button>
-          </div>
-        </aside>
+        <AdminSidebar activePage="dashboard" />
 
         <div className="flex-1 ml-64">
           <header className="bg-ran-dark-100 border-b border-ran-red/20 px-6 py-4">

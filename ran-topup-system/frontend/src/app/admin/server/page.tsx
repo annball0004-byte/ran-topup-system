@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import AdminSidebar from '@/components/AdminSidebar';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -59,38 +60,7 @@ export default function ServerPage() {
   return (
     <main className="min-h-screen bg-ran-dark">
       <div className="flex">
-        <aside className="sidebar">
-          <div className="p-6 border-b border-ran-red/20">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-ran-red rounded-lg flex items-center justify-center">
-                <span className="font-display font-bold text-white">R</span>
-              </div>
-              <span className="font-display font-bold text-lg text-white">RAN TOP-UP</span>
-            </div>
-          </div>
-          <nav className="flex-1 p-4">
-            <div className="space-y-2">
-              {[
-                { icon: '📊', label: 'Dashboard', href: '/admin' },
-                { icon: '🖥️', label: 'Server Status', href: '/admin/server', active: true },
-                { icon: '👥', label: 'จัดการผู้ใช้', href: '/admin/users' },
-                { icon: '🎮', label: 'ตัวละคร', href: '/admin/characters' },
-                { icon: '⚔️', label: 'กิลด์', href: '/admin/guilds' },
-                { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
-                { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
-                { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
-                { icon: '📋', label: 'GM Logs', href: '/admin/gmlogs' },
-                { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search' },
-                { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
-              ].map((item, i) => (
-                <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
-                  <span className="text-xl">{item.icon}</span>
-                  <span className="font-thai">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          </nav>
-        </aside>
+        <AdminSidebar activePage="server" />
 
         <div className="flex-1 ml-64">
           <header className="bg-ran-dark-100 border-b border-ran-red/20 px-6 py-4">
