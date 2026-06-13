@@ -102,6 +102,7 @@ export default function GMLogsPage() {
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
                 { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
+                { icon: '📦', label: 'ประวัติคำสั่งซื้อ', href: '/admin/order-history' },
                 { icon: '📋', label: 'GM Logs', href: '/admin/gmlogs', active: true },
                 { icon: '🔎', label: 'ค้นหาขั้นสูง', href: '/admin/search' },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },

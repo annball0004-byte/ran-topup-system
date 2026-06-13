@@ -21,6 +21,7 @@ import serverRoutes from './routes/server.routes';
 import gmLogsRoutes from './routes/gmlogs.routes';
 import searchRoutes from './routes/search.routes';
 import alertsRoutes from './routes/alerts.routes';
+import orderHistoryRoutes from './routes/order-history.routes';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -54,6 +55,7 @@ app.use('/api/admin/server', serverRoutes);
 app.use('/api/admin/gmlogs', gmLogsRoutes);
 app.use('/api/admin/search', searchRoutes);
 app.use('/api/admin/alerts', alertsRoutes);
+app.use('/api/admin/order-history', orderHistoryRoutes);
 
 // Health Check - แสดงสถานะ database ทั้งหมด
 app.get('/api/health', (_, res) => {

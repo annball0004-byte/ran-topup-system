@@ -349,6 +349,7 @@ export default function AdminCharactersPage() {
                 { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '🛍️', label: 'จัดการร้านค้า', href: '/admin/shop' },
                 { icon: '🤖', label: 'จัดการ Agent', href: '/admin/agents' },
+                { icon: '📦', label: 'ประวัติคำสั่งซื้อ', href: '/admin/order-history' },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
               ].map((item, i) => (
                 <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
