@@ -753,4 +753,277 @@ router.post('/bulk-points', authenticateToken, requireAdmin, async (req: any, re
   }
 });
 
+// ============ CHARACTER INSPECTION ============
+
+router.get('/inspect/:chaNum', authenticateToken, requireAdmin, async (req: any, res: Response) => {
+  try {
+    const gamePool = getGamePool();
+    const userPool = getUserPool();
+    const logPool = getLogPool();
+    const { chaNum } = req.params;
+
+    // 1. Character full info
+    const chaResult = await gamePool.request()
+      .input('chaNum', Number(chaNum))
+      .query(`
+        SELECT 
+          ChaNum, SGNum, UserNum, GuNum, GuPosition,
+          ChaName, ChaGuName, ChaTribe, ChaClass, ChaSchool,
+          ChaHair, ChaFace, ChaLiving, ChaLevel, ChaReborn,
+          ChaMoney, ChaPower, ChaDex, ChaSpirit, ChaStrong,
+          ChaStrength, ChaIntel, ChaStRemain, ChaExp, ChaReExp,
+          ChaViewRange, ChaHP, ChaMP, ChaSP, ChaCP,
+          ChaStartMap, ChaStartGate, ChaPosX, ChaPosY, ChaPosZ,
+          ChaSaveMap, ChaSavePosX, ChaSavePosY, ChaSavePosZ,
+          ChaReturnMap, ChaReturnPosX, ChaReturnPosY, ChaReturnPosZ,
+          ChaBright, ChaAttackP, ChaDefenseP, ChaFightA, ChaShootA,
+          ChaPK, ChaSkillPoint, ChaInvenLine, ChaDeleted, ChaOnline,
+          ChaCreateDate, ChaDeletedDate, ChaSex, ChaHairStyle, ChaHairColor,
+          ChaPKRecord, ChaScaleRange, ChaContributionPoint,
+          ChaBadgeID, ChaActivityPoint, ChaPKScore, ChaPKDeath,
+          ChaWarChips, ChaGamePoints, ChaPlayTime, ChaPlayPoint,
+          ChaGuildPoint, ChaBattlePassLevel
+        FROM ChaInfo 
+        WHERE ChaNum = @chaNum
+      `);
+
+    if (chaResult.recordset.length === 0) {
+      return res.status(404).json({ error: 'ไม่พบตัวละคร' });
+    }
+
+    const cha = chaResult.recordset[0];
+
+    // 2. Owner info
+    let ownerInfo = null;
+    if (cha.UserNum) {
+      const ownerResult = await userPool.request()
+        .input('userNum', cha.UserNum)
+        .query(`SELECT UserNum, UserID, UserName, UserPoint, VotePoint, UserLoginState, UserAvailable, SvrNum, SGNum FROM UserInfo WHERE UserNum = @userNum`);
+      if (ownerResult.recordset.length > 0) {
+        ownerInfo = ownerResult.recordset[0];
+      }
+    }
+
+    // 3. Guild info
+    let guildInfo = null;
+    if (cha.GuNum && cha.GuNum > 0) {
+      const guildResult = await gamePool.request()
+        .input('guNum', cha.GuNum)
+        .query(`SELECT GuNum, GuName, GuRank, GuMoney FROM GuildInfo WHERE GuNum = @guNum`);
+      if (guildResult.recordset.length > 0) {
+        guildInfo = guildResult.recordset[0];
+      }
+    }
+
+    // 4. Pets
+    let pets: any[] = [];
+    try {
+      const petsResult = await gamePool.request()
+        .input('chaNum', Number(chaNum))
+        .query(`
+          SELECT p.PetNum, p.PetName, p.PetLevel, p.PetMID, p.PetSID, 
+                 p.PetCardMID, p.PetCardSID, p.PetColors, p.PetStyle,
+                 p.PetDualSkill, p.PetDeleted
+          FROM PetInfo p
+          WHERE p.ChaNum = @chaNum AND p.PetDeleted = 0
+        `);
+
+      pets = petsResult.recordset;
+
+      // Get pet inventory (accessories + skills)
+      if (pets.length > 0) {
+        for (const pet of pets) {
+          try {
+            const petInvenResult = await gamePool.request()
+              .input('petNum', pet.PetNum)
+              .query(`
+                SELECT PetInvenType, PetInvenMID, PetInvenSID, PetInvenCMID, PetInvenCSID, PetInvenAvailable
+                FROM PetInven
+                WHERE PetNum = @petNum
+              `);
+            pet.accessories = petInvenResult.recordset.filter((r: any) => r.PetInvenType === 1 || r.PetInvenType === 2);
+            pet.skills = petInvenResult.recordset.filter((r: any) => r.PetInvenType === 3);
+          } catch (e) { pet.accessories = []; pet.skills = []; }
+        }
+      }
+    } catch (e) { pets = []; }
+
+    // 5. Vehicles
+    let vehicles: any[] = [];
+    try {
+      const vehiclesResult = await gamePool.request()
+        .input('chaNum', Number(chaNum))
+        .query(`
+          SELECT VehicleNum, VehicleName, VehicleMID, VehicleSID,
+                 VehicleCardMID, VehicleCardSID, VehicleBattery, VehicleBooster,
+                 VehicleDeleted
+          FROM VehicleInfo
+          WHERE ChaNum = @chaNum AND VehicleDeleted = 0
+        `);
+      vehicles = vehiclesResult.recordset;
+    } catch (e) { vehicles = []; }
+
+    // 6. Recent item exchange logs
+    let itemLogs: any[] = [];
+    if (ownerInfo && cha.UserNum) {
+      try {
+        const itemLogResult = await logPool.request()
+          .input('userNum', cha.UserNum)
+          .query(`
+            SELECT TOP 20 
+              NIDMain, NIDSub, MakeType, MakeNum, ItemAmount,
+              ItemFromFlag, ItemFrom, ItemToFlag, ItemTo, ExchangeFlag,
+              Damage, Defense, Fire, Ice, Poison, Electric, Spirit,
+              TradePrice, Date
+            FROM LogItemExchange
+            WHERE ItemFrom = @userNum OR ItemTo = @userNum
+            ORDER BY Date DESC
+          `);
+        itemLogs = itemLogResult.recordset;
+
+        // Resolve item names
+        if (itemLogs.length > 0) {
+          try {
+            const nameResult = await logPool.request().query(`SELECT ItemMain, ItemSub, ItemName FROM ItemList`);
+            const nameMap: Record<string, string> = {};
+            nameResult.recordset.forEach((r: any) => {
+              nameMap[`${r.ItemMain}_${r.ItemSub}`] = r.ItemName;
+            });
+            itemLogs.forEach((log: any) => {
+              log.ItemName = nameMap[`${log.NIDMain}_${log.NIDSub}`] || `Item(${log.NIDMain},${log.NIDSub})`;
+            });
+          } catch (e) { }
+        }
+      } catch (e) { itemLogs = []; }
+    }
+
+    // 7. Equipment lock info
+    let equipLock = null;
+    try {
+      const lockResult = await gamePool.request()
+        .input('chaNum', Number(chaNum))
+        .query(`SELECT ChaEquipmentLockEnable, ChaEquipmentLockStatus FROM ChaInfo WHERE ChaNum = @chaNum`);
+      if (lockResult.recordset.length > 0) {
+        equipLock = lockResult.recordset[0];
+      }
+    } catch (e) { }
+
+    // 8. Personal lock info
+    let personalLock = null;
+    if (ownerInfo) {
+      try {
+        const pLockResult = await gamePool.request()
+          .input('userNum', cha.UserNum)
+          .query(`SELECT UserLockPuton, UserLockInven, UserLockLocker FROM UserPersonalLock WHERE UserNum = @userNum`);
+        if (pLockResult.recordset.length > 0) {
+          personalLock = pLockResult.recordset[0];
+        }
+      } catch (e) { }
+    }
+
+    res.json({
+      success: true,
+      character: {
+        ...cha,
+        owner: ownerInfo,
+        guild: guildInfo,
+        pets,
+        vehicles,
+        itemLogs,
+        equipLock,
+        personalLock
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Inspect character error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + error.message });
+  }
+});
+
+// ============ ITEM EXCHANGE LOGS ============
+
+router.get('/item-logs', authenticateToken, requireAdmin, async (req: any, res: Response) => {
+  try {
+    const logPool = getLogPool();
+    const { chaNum, page = 1, limit = 50 } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+
+    let whereClause = '';
+    const request = logPool.request();
+
+    if (chaNum) {
+      whereClause = 'WHERE ItemFrom = @chaNum OR ItemTo = @chaNum';
+      request.input('chaNum', Number(chaNum));
+    }
+
+    const countResult = await request.query(`SELECT COUNT(*) as total FROM LogItemExchange ${whereClause}`);
+    const total = countResult.recordset[0].total;
+
+    const dataReq = logPool.request();
+    if (chaNum) dataReq.input('chaNum', Number(chaNum));
+    dataReq.input('offset', offset);
+    dataReq.input('limit', Number(limit));
+
+    const result = await dataReq.query(`
+      SELECT TOP ${Number(limit)}
+        NIDMain, NIDSub, MakeType, MakeNum, ItemAmount,
+        ItemFromFlag, ItemFrom, ItemToFlag, ItemTo, ExchangeFlag,
+        Damage, Defense, Fire, Ice, Poison, Electric, Spirit,
+        TradePrice, Date
+      FROM LogItemExchange
+      ${whereClause}
+      ORDER BY Date DESC
+    `);
+
+    // Resolve item names
+    const nameResult = await logPool.request().query(`SELECT ItemMain, ItemSub, ItemName FROM ItemList`);
+    const nameMap: Record<string, string> = {};
+    nameResult.recordset.forEach((r: any) => {
+      nameMap[`${r.ItemMain}_${r.ItemSub}`] = r.ItemName;
+    });
+    result.recordset.forEach((log: any) => {
+      log.ItemName = nameMap[`${log.NIDMain}_${log.NIDSub}`] || `Item(${log.NIDMain},${log.NIDSub})`;
+    });
+
+    res.json({
+      success: true,
+      logs: result.recordset,
+      total,
+      page: Number(page),
+      totalPages: Math.ceil(total / Number(limit))
+    });
+  } catch (error: any) {
+    console.error('Get item logs error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + error.message });
+  }
+});
+
+// ============ LOOKUP ITEM NAME ============
+
+router.get('/item-name', authenticateToken, requireAdmin, async (req: any, res: Response) => {
+  try {
+    const logPool = getLogPool();
+    const { mid, sid } = req.query;
+
+    if (!mid || !sid) {
+      return res.status(400).json({ error: 'กรุณาระบุ mid และ sid' });
+    }
+
+    const result = await logPool.request()
+      .input('mid', Number(mid))
+      .input('sid', Number(sid))
+      .query(`SELECT ItemMain, ItemSub, ItemName FROM ItemList WHERE ItemMain = @mid AND ItemSub = @sid`);
+
+    if (result.recordset.length === 0) {
+      return res.json({ success: true, name: `Unknown (${mid},${sid})` });
+    }
+
+    res.json({ success: true, name: result.recordset[0].ItemName });
+  } catch (error: any) {
+    console.error('Get item name error:', error);
+    res.status(500).json({ error: 'เกิดข้อผิดพลาด: ' + error.message });
+  }
+});
+
 export default router;

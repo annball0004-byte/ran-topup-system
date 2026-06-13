@@ -162,6 +162,7 @@ export default function SettingsPage() {
                 { icon: '🎮', label: 'แพ็กเกจ', href: '/admin' },
                 { icon: '💳', label: 'Payment', href: '/admin' },
                 { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
+                { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '⚙️', label: 'ตั้งค่าระบบ', href: '/admin/settings', active: true },
                 { icon: '📝', label: 'Logs', href: '/admin' },
               ].map((item, i) => (

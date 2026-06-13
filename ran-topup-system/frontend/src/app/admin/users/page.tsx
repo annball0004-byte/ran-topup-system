@@ -203,6 +203,7 @@ export default function AdminUsersPage() {
                 { icon: '🎮', label: 'ตัวละคร', href: '/admin/characters' },
                 { icon: '⚔️', label: 'กิลด์', href: '/admin/guilds' },
                 { icon: '🎛️', label: 'GM Command', href: '/admin/gmc' },
+                { icon: '🔍', label: 'ตรวจสอบไอเทม', href: '/admin/inspect' },
                 { icon: '⚙️', label: 'ตั้งค่า', href: '/admin/settings' },
               ].map((item, i) => (
                 <Link key={i} href={item.href} className={`sidebar-item ${item.active ? 'active' : ''}`}>
